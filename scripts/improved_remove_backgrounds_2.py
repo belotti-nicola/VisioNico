@@ -17,12 +17,14 @@ def new_name(path: str) -> str:
     p = Path(path)
     return p.stem + "_no_background.png"
 
+
+SCALE_FACTOR = 4
 # List of input images to process
 IMAGES = [
     "input.jpg"
 ]
 
-def remove_background(input_path: str, output_path: str) -> None:
+def remove_background(input_path: str) -> None:
     """
     Remove the background from an image using the rembg library and
     save the result as a PNG with transparency.
@@ -47,16 +49,39 @@ def remove_background(input_path: str, output_path: str) -> None:
         print("Removing background...")
         output_image = remove(input_image)
 
-        # 3. Save the image with a transparent background (PNG format)
-        output_image.save(output_path)
-
-        print("\nOperation completed successfully!")
-        print(f"Image saved as: {output_path}")
+        return output_image
 
     except Exception as e:
         print(f"An error occurred during processing: {e}")
+        
+
+
+def clean_edges(image, output_path: str, threshold=200):
+    """
+    Rimuove i pixel grigiastri dai bordi forzando la trasparenza
+    se l'opacità è bassa.
+    """
+    image = image.convert("RGBA")
+    data = image.getdata()
+
+    new_data = []
+    for item in data:
+        r, g, b, a = item
+        if a < threshold:  # pixel quasi trasparente → rendilo invisibile
+            new_data.append((r, g, b, 0))
+        else:
+            new_data.append((r, g, b, a))
+
+    image.putdata(new_data)
+
+    image.save(output_path)
+
+    print("\nOperation completed successfully!")
+    print(f"Image saved as: {output_path}")
+
 
 # Process each image in the list
 for input_file in IMAGES:
     output_file = new_name(input_file)
-    remove_background(input_file, output_file)
+    filtered = remove_background(input_file)
+    clean_edges(filtered,output_file)
